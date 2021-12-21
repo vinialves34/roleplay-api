@@ -3,6 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import supertest from 'supertest'
 import { UserFactory } from '../../database/factories/index'
 import Mail from '@ioc:Adonis/Addons/Mail'
+import Hash from '@ioc:Adonis/Core/Hash';
 
 const BASE_URL = `http://${process.env.HOST}:${process.env.PORT}`
 
@@ -40,6 +41,35 @@ test.group('Password', (group) => {
 
         const tokens = await user.related('tokens').query()
         assert.isNotEmpty(tokens)
+    })
+
+    test('it should return 422 when required data is not provided or data is invalid', async (assert) => {
+        const { body } = await supertest(BASE_URL).post('/forgot-password').send({}).expect(422)
+
+        assert.equal(body.code, 'BAD_REQUEST')
+        assert.equal(body.status, 422)
+    })
+
+    test('it should be able to reset password', async (assert) => {
+        const user = await UserFactory.create();
+        const { token } = await user.related('tokens').create({ token: 'token' })
+
+        await supertest(BASE_URL)
+            .post('/reset-password')
+            .send({token, password: '123456789'})
+            .expect(204)
+
+        await user.refresh()
+        const checkPassword = await Hash.verify(user.password, '123456789')
+
+        assert.isTrue(checkPassword)
+    })
+
+    test.only('it should return 422 when required data is not provided or data is invalid', async (assert) => {
+        const { body } = await supertest(BASE_URL).post('/reset-password').send({}).expect(422)
+
+        assert.equal(body.code, 'BAD_REQUEST')
+        assert.equal(body.status, 422)
     })
 
     group.beforeEach(async () => {
