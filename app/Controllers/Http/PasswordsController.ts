@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto'
 import { promisify } from 'util'
 import ForgotPassword from '../../Validators/ForgotPasswordValidator';
 import ResetPassword from '../../Validators/ResetPasswordValidator';
+import TokenExpired from 'App/Exceptions/TokenExpiredException'
 
 export default class PasswordsController {
     public async forgotPassword({ request, response }: HttpContextContract) {
@@ -36,10 +37,15 @@ export default class PasswordsController {
 
         const userByToken = await User.query().whereHas('tokens', (query) => {
             query.where('token', token)
-        }).firstOrFail()
+        }).preload('tokens').firstOrFail()
+
+        const tokenAge = Math.abs(userByToken.tokens[0].createdAt.diffNow('hours').hours)
+
+        if (tokenAge > 2) throw new TokenExpired()
 
         userByToken.password = password
         await userByToken.save()
+        await userByToken.tokens[0].delete()
 
         return response.noContent()
     }
