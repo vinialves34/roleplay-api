@@ -63,7 +63,7 @@ test.group("Session", group => {
             .expect(200)
     })
 
-    test.only("it should revoke token when user signs out", async (assert) => {
+    test("it should revoke token when user signs out", async (assert) => {
         const plainPassword = "test"
         const { email } = await UserFactory.merge({ password: plainPassword }).create()
         const { body } = await supertest(BASE_URL)

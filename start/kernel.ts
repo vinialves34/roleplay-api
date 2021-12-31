@@ -40,5 +40,4 @@ Server.middleware.register([
 | Route.get('dashboard', 'UserController.dashboard').middleware('auth')
 |
 */
-Server.middleware.registerNamed({
-})
+Server.middleware.registerNamed({ auth: () => import('App/Middleware/Auth') })

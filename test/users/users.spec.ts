@@ -6,6 +6,8 @@ import Hash from '@ioc:Adonis/Core/Hash';
 
 const BASE_URL = `http://${process.env.HOST}:${process.env.PORT}`;
 
+let token = '';
+
 test.group('User', (group) => {
     test('it should create an user', async (assert) => {
         const userPayload = {
@@ -94,7 +96,9 @@ test.group('User', (group) => {
             email,
             avatar,
             password
-        }).expect(200);
+        })
+        .set("Authorization", `Bearer ${token}`)
+        .expect(200);
 
         assert.exists(body.user, 'User undefined');
         assert.equal(body.user.email, email);
@@ -110,7 +114,9 @@ test.group('User', (group) => {
             email: user.email,
             avatar: user.avatar,
             password
-        }).expect(200);
+        })
+        .set("Authorization", `Bearer ${token}`)
+        .expect(200);
 
         assert.exists(body.user, 'User undefined');
         assert.equal(body.user.id, user.id);
@@ -121,7 +127,9 @@ test.group('User', (group) => {
 
     test('it should return 422 when required data is not provided', async (assert) => {
         const { id } = await UserFactory.create();
-        const { body } = await supertest(BASE_URL).put(`/users/${id}`).send({}).expect(422);
+        const { body } = await supertest(BASE_URL).put(`/users/${id}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send({}).expect(422);
 
         assert.equal(body.code, 'BAD_REQUEST');
         assert.equal(body.status, 422);
@@ -133,7 +141,9 @@ test.group('User', (group) => {
             email: 'test',
             avatar: avatar,
             password: password
-        }).expect(422);
+        })
+        .set("Authorization", `Bearer ${token}`)
+        .expect(422);
 
         assert.equal(body.code, 'BAD_REQUEST');
         assert.equal(body.status, 422);
@@ -145,7 +155,9 @@ test.group('User', (group) => {
             email: email,
             avatar: avatar,
             password: '123'
-        }).expect(422);
+        })
+        .set("Authorization", `Bearer ${token}`)
+        .expect(422);
 
         assert.equal(body.code, 'BAD_REQUEST');
         assert.equal(body.status, 422);
@@ -157,11 +169,23 @@ test.group('User', (group) => {
             email: email,
             avatar: 'avatar',
             password: password
-        }).expect(422);
+        })
+        .set("Authorization", `Bearer ${token}`)
+        .expect(422);
 
         assert.equal(body.code, 'BAD_REQUEST');
         assert.equal(body.status, 422);
     });
+
+    group.before(async () => {
+        const plainPassword = "test"
+        const { email } = await UserFactory.merge({ password: plainPassword }).create()
+        const { body } = await supertest(BASE_URL)
+            .post("/sessions").send({ email, password: plainPassword })
+            .expect(201)
+        
+        token = body.token.token
+    })
 
     group.beforeEach(async () => {
         await Database.beginGlobalTransaction()
