@@ -23,8 +23,6 @@ test.group("Session", group => {
         const { body } = await supertest(BASE_URL)
             .post("/sessions").send({ email, password: plainPassword })
             .expect(201)
-        
-            console.log(body);
             
         assert.isDefined(body.token, "Token undefined")
         assert.equal(body.user.id, id)
